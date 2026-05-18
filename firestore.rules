@@ -1,0 +1,70 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Validation Helpers ---
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'xp', 'streak', 'level', 'energy']) &&
+             data.keys().size() <= 8 && // Allowing for some optional fields like lastEnergyUpdate
+             data.uid == request.auth.uid &&
+             data.xp is int && data.xp >= 0 &&
+             data.streak is int && data.streak >= 0 &&
+             data.level in ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] &&
+             data.energy is int && data.energy >= 0 && data.energy <= 10;
+    }
+
+    function isValidLesson(data) {
+      return data.keys().hasAll(['userId', 'lessonId', 'status']) &&
+             data.keys().size() <= 5 &&
+             data.userId == request.auth.uid &&
+             data.lessonId is string &&
+             data.status in ['locked', 'available', 'completed'];
+    }
+
+    // --- Rules ---
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(incoming());
+      allow update: if isOwner(userId) && isValidUserProfile(incoming()) && (
+        // Action: Update Progress
+        incoming().diff(existing()).affectedKeys().hasOnly(['xp', 'streak', 'energy', 'level', 'lastEnergyUpdate'])
+      );
+      
+      // Lessons sub-collection
+      match /lessons/{lessonId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidLesson(incoming());
+        allow update: if isOwner(userId) && isValidLesson(incoming()) && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'score'])
+        );
+      }
+    }
+  }
+}

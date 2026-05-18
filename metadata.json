@@ -1,0 +1,8 @@
+{
+  "name": "Linguae",
+  "description": "Interactive English learning platform with AI-powered personalized lessons, dynamic exercises, and gamified progress tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user progress, stats, and preferences.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "xp": { "type": "integer" },
+        "streak": { "type": "integer" },
+        "level": { "type": "string", "enum": ["A1", "A2", "B1", "B2", "C1", "C2"] },
+        "energy": { "type": "integer" },
+        "maxEnergy": { "type": "integer" },
+        "lastEnergyUpdate": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "xp", "streak", "level", "energy"]
+    },
+    "Lesson": {
+      "title": "Lesson Progress",
+      "description": "Tracks progress on specific lessons.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "lessonId": { "type": "string" },
+        "status": { "type": "string", "enum": ["locked", "available", "completed"] },
+        "score": { "type": "integer" }
+      },
+      "required": ["userId", "lessonId", "status"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Main user document."
+    },
+    "users/{userId}/lessons/{lessonId}": {
+      "schema": "Lesson",
+      "description": "User's progress in individual lessons."
+    }
+  }
+}
