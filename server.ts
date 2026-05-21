@@ -234,14 +234,15 @@ async function startServer() {
         model: 'gemini-3-flash-preview',
         contents: `Actúa como un examinador experto de inglés. Crea un mini test de nivelación de 10 preguntas.
         
-        Reglas:
-        1. 10 preguntas de opción múltiple.
-        2. Dificultad progresiva (3 de A1, 4 de A2, 3 de B1).
-        3. Evaluar gramática y vocabulario.
+        Reglas absolutas:
+        1. Las preguntas y opciones de respuesta DEBEN estar escritas 100% en inglés. No las traduzcas al español.
+        2. 10 preguntas de opción múltiple con dificultad progresiva (3 de A1, 4 de A2, 3 de B1).
+        3. Evaluar gramática y vocabulario real.
+        4. Las explicaciones pueden estar en español para que el usuario entienda su error.
         
         Responde exclusivamente en JSON.`,
         config: {
-          systemInstruction: "You are an expert English Examiner. Format the test as JSON. Each question must include its difficulty level (A1, A2, or B1).",
+          systemInstruction: "You are an expert English Examiner. Format the test as JSON. Crucial rule: The 'question', and all items in 'options' and 'correctAnswer' must be written 100% in English. The 'explanation' may be written in Spanish to provide friendly help.",
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
