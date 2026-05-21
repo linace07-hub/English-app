@@ -5,6 +5,7 @@ import { Dashboard } from './components/Dashboard';
 import { LessonView } from './components/LessonView';
 import { SimulatorView } from './components/SimulatorView';
 import { PlacementTest } from './components/PlacementTest';
+import { ProfileView } from './components/ProfileView';
 import { AIAssistant } from './components/AIAssistant';
 import { motion, AnimatePresence } from 'motion/react';
 import { Award, Zap, Heart, Star } from 'lucide-react';
@@ -17,6 +18,8 @@ interface UserStats {
   unlockedModules: string[];
   badges: string[];
   placementCompleted: boolean;
+  userName?: string;
+  avatarSeed?: string;
 }
 
 export default function App() {
@@ -25,18 +28,27 @@ export default function App() {
   
   const [stats, setStats] = useState<UserStats>(() => {
     const saved = localStorage.getItem('user_stats');
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && parsed.placementCompleted && !parsed.userName) {
+        parsed.userName = 'Estudiante';
+        parsed.avatarSeed = 'Estudiante';
+      }
+      return parsed;
+    }
     return {
       xp: 0,
       energy: 5,
       level: 'A1',
       unlockedModules: ['a1'],
       badges: [],
-      placementCompleted: false
+      placementCompleted: false,
+      userName: '',
+      avatarSeed: ''
     };
   });
 
-  const [showPlacement, setShowPlacement] = useState(!stats.placementCompleted);
+  const [showPlacement, setShowPlacement] = useState(!stats.placementCompleted || !stats.userName);
 
   const [notification, setNotification] = useState<{ title: string, message: string, type: 'badge' | 'unlock' } | null>(null);
 
@@ -75,7 +87,7 @@ export default function App() {
     setStats(prev => ({ ...prev, energy: Math.max(0, prev.energy - 1) }));
   };
 
-  const handlePlacementComplete = (level: string) => {
+  const handlePlacementComplete = (level: string, userName: string, avatarSeed: string) => {
     setStats(prev => {
       let unlocked = ['a1'];
       if (level === 'A2') unlocked = ['a1', 'a2'];
@@ -86,12 +98,31 @@ export default function App() {
         level,
         unlockedModules: unlocked,
         placementCompleted: true,
+        userName,
+        avatarSeed,
         xp: 100 // Reward for completing placement
       };
     });
     setSelectedLevel(level);
     setShowPlacement(false);
-    showNotification('¡Perfil Creado! 🎯', `Tu nivel es ${level}. Hemos adaptado tu plan.`, 'unlock');
+    showNotification('¡Perfil Creado! 🎯', `Bienvenido ${userName}. Tu nivel es ${level}.`, 'unlock');
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('user_stats');
+    setStats({
+      xp: 0,
+      energy: 5,
+      level: 'A1',
+      unlockedModules: ['a1'],
+      badges: [],
+      placementCompleted: false,
+      userName: '',
+      avatarSeed: ''
+    });
+    setShowPlacement(true);
+    setView('dashboard');
+    showNotification('Sesión Cerrada 🔒', 'Se han restablecido los datos de la sesión.', 'unlock');
   };
 
   const handleStartLesson = (level: string) => {
@@ -106,11 +137,11 @@ export default function App() {
   return (
     <div className="flex h-screen bg-[#F9FAFB] overflow-hidden">
       {/* Permanent Sidebar */}
-      <Sidebar onNavigate={(v) => setView(v as any)} currentView={view} />
+      <Sidebar onNavigate={(v) => setView(v as any)} currentView={view} energy={stats.energy} />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        <TopBar xp={stats.xp} energy={stats.energy} />
+        <TopBar userName={stats.userName || 'Estudiante'} xp={stats.xp} energy={stats.energy} />
         
         {/* Notifications */}
         <AnimatePresence>
@@ -165,22 +196,27 @@ export default function App() {
             />
           ) : view === 'simulator' ? (
             <SimulatorView level={selectedLevel} onExit={() => setView('dashboard')} />
+          ) : view === 'profile' ? (
+            <ProfileView 
+              stats={stats} 
+              onUpdateStats={(updated) => setStats(updated)} 
+              onLogout={handleLogout}
+            />
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-12 text-center h-full bg-slate-50/30">
               <div className="w-32 h-32 bg-white rounded-[2.5rem] shadow-xl shadow-indigo-100 flex items-center justify-center mb-8 border border-slate-100 transform -rotate-3 transition-transform hover:rotate-0">
                 <span className="text-5xl">
-                    {view === 'vocabulary' ? '📚' : view === 'stats' ? '📊' : view === 'profile' ? '👤' : '✨'}
+                    {view === 'vocabulary' ? '📚' : view === 'stats' ? '📊' : '✨'}
                 </span>
               </div>
               <h2 className="text-4xl font-black text-slate-900 mb-4 tracking-tight uppercase">
                 {view === 'vocabulary' ? 'Vocabulario AI' : 
                  view === 'stats' ? 'Tus Logros' : 
-                 view === 'profile' ? 'Tu Perfil' : 
                  view === 'review' ? 'Sesión de Repaso' : view}
               </h2>
               <p className="text-slate-500 max-w-lg font-medium text-lg leading-relaxed">
                 {view === 'vocabulary' ? 'Estamos generando una lista personalizada de palabras basada en tus errores recientes.' : 
-                 view === 'stats' ? 'Calculando tus horas de estudio y precisión con modelos de inteligencia artificial.' : 
+                 view === 'stats' ? 'Calculando tus horas de estudio y precisión con modelos de inteligencia artificial de última generación.' : 
                  'Esta sección está siendo optimizada para ofrecerte el mejor contenido personalizado. ¡Vuelve pronto!'}
               </p>
               <div className="mt-10 flex gap-4">

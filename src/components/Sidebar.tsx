@@ -22,7 +22,7 @@ const navItems = [
   { icon: User, label: 'Perfil', id: 'profile' },
 ];
 
-export function Sidebar({ onNavigate, currentView }: { onNavigate: (view: string) => void, currentView: string }) {
+export function Sidebar({ onNavigate, currentView, energy = 5 }: { onNavigate: (view: string) => void, currentView: string, energy?: number }) {
   return (
     <div className="w-64 bg-indigo-600 flex flex-col h-full shadow-2xl relative z-20">
       <div className="p-6 flex items-center gap-3 mb-8">
@@ -71,12 +71,12 @@ export function Sidebar({ onNavigate, currentView }: { onNavigate: (view: string
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                 <span className="text-[10px] font-black text-indigo-100 uppercase tracking-wider">Energía</span>
             </div>
-            <span className="text-xs font-bold text-white">4 / 5</span>
+            <span className="text-xs font-bold text-white">{energy} / 5</span>
         </div>
         <div className="w-full bg-indigo-900/50 h-1.5 rounded-full overflow-hidden">
-            <div className="bg-amber-400 h-full w-4/5 rounded-full shadow-[0_0_8px_rgba(251,191,36,0.4)]" />
+            <div className="bg-amber-400 h-full rounded-full shadow-[0_0_8px_rgba(251,191,36,0.4)] transition-all" style={{ width: `${(energy / 5) * 100}%` }} />
         </div>
-        <p className="mt-2 text-[10px] text-indigo-200 font-medium opacity-80">Próxima carga en 12:45</p>
+        <p className="mt-2 text-[10px] text-indigo-200 font-medium opacity-80">{energy === 5 ? '¡Energía al máximo! ⚡' : 'Cargando energía periódicamente...'}</p>
       </div>
       
       <div className="p-4 border-t border-indigo-500/30">
