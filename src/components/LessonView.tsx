@@ -181,13 +181,13 @@ export function LessonView({ level, onExit, onComplete, onMistake }: { level: st
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: i * 0.1 }}
                                 key={i} 
-                                className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between group hover:border-indigo-200 transition-all"
+                                className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-6 group hover:border-indigo-200 transition-all"
                             >
                                 <div>
                                     <h4 className="text-xl font-black text-indigo-600 mb-1">{v.word}</h4>
                                     <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">{v.meaning}</p>
                                 </div>
-                                <div className="text-right max-w-[50%]">
+                                <div className="text-left sm:text-right max-w-full sm:max-w-[50%]">
                                     <p className="text-slate-600 text-sm italic font-medium">"{v.example}"</p>
                                 </div>
                             </motion.div>
@@ -266,7 +266,7 @@ export function LessonView({ level, onExit, onComplete, onMistake }: { level: st
                     <span className="text-xs font-black text-slate-400 uppercase group-hover:text-indigo-600 tracking-widest hidden sm:block">Salir</span>
                 </button>
                 
-                <div className="flex-1 max-w-2xl mx-12">
+                <div className="flex-1 max-w-2xl mx-3 sm:mx-12">
                     <div className="flex justify-between items-end mb-2 px-1">
                         <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Tu Progreso</span>
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{currentIndex + 1} de {lessonData.exercises.length}</span>
@@ -429,7 +429,7 @@ export function LessonView({ level, onExit, onComplete, onMistake }: { level: st
                         animate={{ y: 0 }}
                         exit={{ y: 200 }}
                         className={cn(
-                            "fixed bottom-0 left-0 right-0 p-10 border-t-4 shadow-[0_-20px_40px_rgba(0,0,0,0.05)]",
+                            "fixed bottom-0 left-0 right-0 p-5 sm:p-10 border-t-4 shadow-2xl max-h-[85vh] overflow-y-auto z-40",
                             selectedOption === currentExercise.correctAnswer 
                                 ? "bg-white border-green-500" 
                                 : "bg-white border-rose-500"

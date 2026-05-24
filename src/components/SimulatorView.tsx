@@ -92,15 +92,16 @@ export function SimulatorView({ level, onExit }: { level: string, onExit: () => 
 
   if (!selectedScenario) {
     return (
-      <div className="p-8 max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-12">
+      <div className="p-4 sm:p-8 max-w-5xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 sm:mb-12">
             <div>
-                <h2 className="text-4xl font-black text-slate-900 tracking-tight">Simulador de Vida Real</h2>
-                <p className="text-slate-500 font-medium">Practica inglés en situaciones cotidianas con nuestro tutor AI.</p>
+                <h2 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">Simulador de Vida Real</h2>
+                <p className="text-slate-500 text-sm sm:text-base font-medium">Practica inglés en situaciones cotidianas con nuestro tutor AI.</p>
             </div>
             <button 
                 onClick={onExit}
-                className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm hover:bg-slate-50 transition-all"
+                className="p-3 sm:p-4 rounded-2xl bg-white border border-slate-100 shadow-sm hover:bg-slate-50 transition-all self-end sm:self-auto"
+                aria-label="Salir del simulador"
             >
                 <ArrowLeft className="w-5 h-5 text-slate-600" />
             </button>
@@ -144,22 +145,22 @@ export function SimulatorView({ level, onExit }: { level: string, onExit: () => 
   return (
     <div className="flex flex-col h-full bg-slate-50">
       {/* Header */}
-      <div className="bg-white border-b border-slate-100 p-6 flex items-center justify-between shadow-sm z-10">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
-            <Bot className="w-6 h-6 text-white" />
+      <div className="bg-white border-b border-slate-100 p-4 sm:p-6 flex items-center justify-between shadow-sm z-10">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
+            <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
           <div>
-            <h3 className="font-black text-slate-900">Simulación: {scenarios.find(s => s.id === selectedScenario)?.title}</h3>
-            <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">En línea - Nivel {level}</span>
+            <h3 className="font-black text-sm sm:text-base text-slate-900">Simulación: {scenarios.find(s => s.id === selectedScenario)?.title}</h3>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">En línea - {level}</span>
             </div>
           </div>
         </div>
         <button 
           onClick={() => setSelectedScenario(null)}
-          className="px-6 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all text-sm"
+          className="px-4 py-2.5 sm:px-6 sm:py-3 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 rounded-xl font-black transition-all text-xs sm:text-sm"
         >
           Finalizar
         </button>

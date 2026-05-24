@@ -49,6 +49,7 @@ export default function App() {
   });
 
   const [showPlacement, setShowPlacement] = useState(!stats.placementCompleted || !stats.userName);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [notification, setNotification] = useState<{ title: string, message: string, type: 'badge' | 'unlock' } | null>(null);
 
@@ -135,13 +136,54 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen bg-[#F9FAFB] overflow-hidden">
-      {/* Permanent Sidebar */}
-      <Sidebar onNavigate={(v) => setView(v as any)} currentView={view} energy={stats.energy} />
+    <div className="flex h-screen bg-[#F9FAFB] overflow-hidden relative">
+      {/* Desktop Sidebar (Permanent) */}
+      <div className="hidden lg:flex lg:w-64 shrink-0 h-full">
+        <Sidebar onNavigate={(v) => setView(v as any)} currentView={view} energy={stats.energy} />
+      </div>
+
+      {/* Mobile/Tablet Sidebar Drawer with Smooth Backdrop Overlay */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden flex">
+            {/* Dark Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.4 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSidebarOpen(false)}
+              className="fixed inset-0 bg-slate-900"
+            />
+            {/* Sliding Sidebar panel */}
+            <motion.div 
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+              className="relative w-64 bg-indigo-600 flex flex-col h-full shadow-2xl z-10"
+            >
+              <Sidebar 
+                onNavigate={(v) => {
+                  setView(v as any);
+                  setSidebarOpen(false);
+                }} 
+                currentView={view} 
+                energy={stats.energy} 
+                onClose={() => setSidebarOpen(false)}
+              />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        <TopBar userName={stats.userName || 'Estudiante'} xp={stats.xp} energy={stats.energy} />
+        <TopBar 
+          userName={stats.userName || 'Estudiante'} 
+          xp={stats.xp} 
+          energy={stats.energy} 
+          onOpenSidebar={() => setSidebarOpen(true)}
+        />
         
         {/* Notifications */}
         <AnimatePresence>

@@ -8,7 +8,8 @@ import {
   User, 
   Zap,
   Sparkles,
-  Settings
+  Settings,
+  X
 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 
@@ -22,14 +23,26 @@ const navItems = [
   { icon: User, label: 'Perfil', id: 'profile' },
 ];
 
-export function Sidebar({ onNavigate, currentView, energy = 5 }: { onNavigate: (view: string) => void, currentView: string, energy?: number }) {
+export function Sidebar({ onNavigate, currentView, energy = 5, onClose }: { onNavigate: (view: string) => void, currentView: string, energy?: number, onClose?: () => void }) {
   return (
-    <div className="w-64 bg-indigo-600 flex flex-col h-full shadow-2xl relative z-20">
-      <div className="p-6 flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 bg-amber-400 rounded-xl flex items-center justify-center shadow-lg transform rotate-3">
-            <Zap className="text-indigo-900 w-6 h-6 fill-current" />
+    <div className="w-full bg-indigo-600 flex flex-col h-full shadow-2xl relative z-20">
+      <div className="p-6 flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-amber-400 rounded-xl flex items-center justify-center shadow-lg transform rotate-3">
+              <Zap className="text-indigo-900 w-6 h-6 fill-current" />
+          </div>
+          <span className="font-bold text-2xl text-white tracking-tight">Linguae</span>
         </div>
-        <span className="font-bold text-2xl text-white tracking-tight">Linguae</span>
+        
+        {onClose && (
+          <button 
+            onClick={onClose}
+            className="p-2 rounded-xl bg-indigo-700/50 hover:bg-indigo-500/50 text-indigo-100 hover:text-white transition-all active:scale-95 lg:hidden"
+            aria-label="Cerrar menú"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       <div className="px-6 mb-4">

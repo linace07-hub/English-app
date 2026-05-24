@@ -46,9 +46,10 @@ export function AIAssistant() {
             {/* Toggle Button */}
             <button 
                 onClick={() => setIsOpen(!isOpen)}
-                className="fixed bottom-8 right-8 w-16 h-16 bg-indigo-600 rounded-3xl shadow-2xl shadow-indigo-600/40 flex items-center justify-center group hover:scale-110 transition-all z-40 border-b-4 border-indigo-800 active:border-b-0 active:translate-y-1"
+                className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 w-14 h-14 sm:w-16 sm:h-16 bg-indigo-600 rounded-[1.25rem] sm:rounded-3xl shadow-2xl shadow-indigo-600/40 flex items-center justify-center group hover:scale-110 transition-all z-40 border-b-4 border-indigo-800 active:border-b-0 active:translate-y-1"
+                aria-label="Toggle Asistente AI"
             >
-                {isOpen ? <X className="text-white w-8 h-8" /> : <Sparkles className="text-white w-8 h-8 animate-hover" />}
+                {isOpen ? <X className="text-white w-6 h-6 sm:w-8 sm:h-8" /> : <Sparkles className="text-white w-6 h-6 sm:w-8 sm:h-8 animate-hover" />}
             </button>
 
             {/* Chat Panel */}
@@ -58,7 +59,7 @@ export function AIAssistant() {
                         initial={{ opacity: 0, y: 20, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                        className="fixed bottom-28 right-8 w-96 max-h-[600px] h-[80vh] bg-white rounded-[32px] shadow-2xl border border-slate-100 flex flex-col overflow-hidden z-40"
+                        className="fixed bottom-24 right-4 sm:right-8 w-[calc(100vw-2rem)] sm:w-96 max-h-[500px] sm:max-h-[600px] h-[75vh] bg-white rounded-[2rem] shadow-2xl border border-slate-100 flex flex-col overflow-hidden z-40"
                     >
                         {/* Header */}
                         <div className="p-6 bg-gradient-to-br from-indigo-600 to-indigo-700 text-white shrink-0">
