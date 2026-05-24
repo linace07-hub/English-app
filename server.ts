@@ -26,7 +26,7 @@ async function startServer() {
     try {
       const { level, topic } = req.body;
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-3.5-flash',
         contents: `Generate 5 varied English learning exercises for level ${level} about ${topic}. 
         Mix these types: 
         1. 'multiple-choice': Standard question with options.
@@ -70,7 +70,7 @@ async function startServer() {
     try {
       const { question, context } = req.body;
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-3.5-flash',
         contents: question,
         config: {
           systemInstruction: `You are Linguae AI, a friendly English tutor. Help the user learn English. Context: ${context || 'General conversation'}. Keep it concise and encouraging.`,
@@ -110,7 +110,7 @@ async function startServer() {
            Respond in Spanish, but keep English terms in English. Format as JSON.`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-3.5-flash',
         contents: prompt,
         config: {
           systemInstruction: "You are an expert English tutor. You provide constructive, elegant and motivating feedback. Respond ONLY in JSON.",
@@ -149,7 +149,7 @@ async function startServer() {
       };
 
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-3.5-flash',
         contents: messages.map((m: any) => ({
           role: m.role === 'user' ? 'user' : 'model',
           parts: [{ text: m.text }]
@@ -171,7 +171,7 @@ async function startServer() {
     try {
       const { level, topic } = req.body;
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-3.5-flash',
         contents: `Actúa como diseñador curricular de inglés. Crea una microlección nivel ${level} sobre "${topic}".
         
         Debe incluir:
@@ -231,7 +231,7 @@ async function startServer() {
   app.post('/api/generate-placement-test', async (req, res) => {
     try {
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-3.5-flash',
         contents: `Actúa como un examinador experto de inglés. Crea un mini test de nivelación de 10 preguntas.
         
         Reglas absolutas:
