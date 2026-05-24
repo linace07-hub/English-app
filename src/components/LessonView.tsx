@@ -14,7 +14,7 @@ import {
   BookOpen,
   Trophy
 } from 'lucide-react';
-import { cn } from '@/src/lib/utils';
+import { cn } from '../lib/utils';
 
 export function LessonView({ level, onExit, onComplete, onMistake }: { level: string, onExit: () => void, onComplete: (xp: number) => void, onMistake: () => void }) {
     const [lessonData, setLessonData] = useState<any>(null);

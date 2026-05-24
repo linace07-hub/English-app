@@ -15,7 +15,7 @@ import {
   RefreshCw,
   CheckCircle2
 } from 'lucide-react';
-import { cn } from '@/src/lib/utils';
+import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface ProfileViewProps {
@@ -75,6 +75,7 @@ export function ProfileView({ stats, onUpdateStats, onLogout }: ProfileViewProps
                 src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${isEditing ? tempSeed : currentSeed}`} 
                 alt="Personalized Avatar" 
                 className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
               />
             </div>
             {isEditing && (

@@ -13,7 +13,7 @@ import {
   Clock,
   ChevronRight
 } from 'lucide-react';
-import { cn } from '@/src/lib/utils';
+import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface Question {
@@ -249,7 +249,7 @@ export function PlacementTest({ onComplete }: PlacementTestProps) {
               <div className="flex items-center gap-5 bg-slate-50 p-4 rounded-2xl border border-slate-100">
                 <div className="relative">
                   <div className="w-16 h-16 bg-indigo-100 rounded-2xl border-2 border-slate-100 overflow-hidden shadow-sm flex items-center justify-center">
-                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`} alt="Avatar preview" />
+                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`} alt="Avatar preview" referrerPolicy="no-referrer" />
                   </div>
                   <button 
                     onClick={handleRandomizeAvatar}

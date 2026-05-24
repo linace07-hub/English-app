@@ -9,7 +9,7 @@ import { ProfileView } from './components/ProfileView';
 import { AIAssistant } from './components/AIAssistant';
 import { motion, AnimatePresence } from 'motion/react';
 import { Award, Zap, Heart, Star } from 'lucide-react';
-import { cn } from '@/src/lib/utils';
+import { cn } from './lib/utils';
 
 interface UserStats {
   xp: number;

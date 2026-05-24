@@ -11,7 +11,7 @@ import {
   User as UserIcon,
   Bot
 } from 'lucide-react';
-import { cn } from '@/src/lib/utils';
+import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 const scenarios = [

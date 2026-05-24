@@ -1,6 +1,6 @@
 import React from 'react';
 import { Search, Bell, Flame, Zap, Heart, Star, Menu } from 'lucide-react';
-import { cn } from '@/src/lib/utils';
+import { cn } from '../lib/utils';
 
 export function TopBar({ userName = "Ana", xp = 0, energy = 5, onOpenSidebar }: { userName?: string, xp?: number, energy?: number, onOpenSidebar?: () => void }) {
   return (
@@ -58,7 +58,7 @@ export function TopBar({ userName = "Ana", xp = 0, energy = 5, onOpenSidebar }: 
                 <p className="text-[10px] font-black text-indigo-500 uppercase tracking-wider">Pro Account</p>
             </div>
             <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-100 rounded-xl sm:rounded-2xl border-2 border-white shadow-sm overflow-hidden ring-1 ring-slate-100/50">
-                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}`} alt="Avatar" />
+                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}`} alt="Avatar" referrerPolicy="no-referrer" />
             </div>
         </div>
       </div>

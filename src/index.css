@@ -9,7 +9,11 @@
 }
 
 body {
-  @apply bg-surface text-slate-800 antialiased font-sans;
+  background-color: #F8FAFC;
+  color: #1E293B;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
 }
 
 /* Custom animations */
