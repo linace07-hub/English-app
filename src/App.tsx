@@ -24,23 +24,48 @@ interface UserStats {
 
 export default function App() {
   const [view, setView] = useState<'dashboard' | 'lesson' | 'review' | 'vocabulary' | 'stats' | 'profile' | 'simulator' | 'placement'>(() => {
-    const savedView = localStorage.getItem('user_current_view');
-    return (savedView as any) || 'dashboard';
+    try {
+      const savedView = localStorage.getItem('user_current_view');
+      return (savedView as any) || 'dashboard';
+    } catch (e) {
+      console.warn("localStorage is not available:", e);
+      return 'dashboard';
+    }
   });
   const [selectedLevel, setSelectedLevel] = useState<string>(() => {
-    const savedLevel = localStorage.getItem('user_selected_level');
-    return savedLevel || 'A2';
+    try {
+      const savedLevel = localStorage.getItem('user_selected_level');
+      return savedLevel || 'A2';
+    } catch (e) {
+      console.warn("localStorage is not available:", e);
+      return 'A2';
+    }
   });
   
   const [stats, setStats] = useState<UserStats>(() => {
-    const saved = localStorage.getItem('user_stats');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed && parsed.placementCompleted && !parsed.userName) {
-        parsed.userName = 'Estudiante';
-        parsed.avatarSeed = 'Estudiante';
+    try {
+      const saved = localStorage.getItem('user_stats');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed) {
+          if (parsed.placementCompleted && !parsed.userName) {
+            parsed.userName = 'Estudiante';
+            parsed.avatarSeed = 'Estudiante';
+          }
+          return {
+            xp: typeof parsed.xp === 'number' ? parsed.xp : 0,
+            energy: typeof parsed.energy === 'number' ? parsed.energy : 5,
+            level: parsed.level || 'A1',
+            unlockedModules: Array.isArray(parsed.unlockedModules) ? parsed.unlockedModules : ['a1'],
+            badges: Array.isArray(parsed.badges) ? parsed.badges : [],
+            placementCompleted: !!parsed.placementCompleted,
+            userName: parsed.userName || '',
+            avatarSeed: parsed.avatarSeed || ''
+          };
+        }
       }
-      return parsed;
+    } catch (e) {
+      console.error("Failed to parse user_stats from localStorage:", e);
     }
     return {
       xp: 0,
@@ -54,21 +79,35 @@ export default function App() {
     };
   });
 
-  const [showPlacement, setShowPlacement] = useState(!stats.placementCompleted || !stats.userName);
+  const [showPlacement, setShowPlacement] = useState(() => {
+    return !stats.placementCompleted || !stats.userName;
+  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [notification, setNotification] = useState<{ title: string, message: string, type: 'badge' | 'unlock' } | null>(null);
 
   useEffect(() => {
-    localStorage.setItem('user_stats', JSON.stringify(stats));
+    try {
+      localStorage.setItem('user_stats', JSON.stringify(stats));
+    } catch (e) {
+      console.warn("localStorage setItem stats failed:", e);
+    }
   }, [stats]);
 
   useEffect(() => {
-    localStorage.setItem('user_current_view', view);
+    try {
+      localStorage.setItem('user_current_view', view);
+    } catch (e) {
+      console.warn("localStorage setItem view failed:", e);
+    }
   }, [view]);
 
   useEffect(() => {
-    localStorage.setItem('user_selected_level', selectedLevel);
+    try {
+      localStorage.setItem('user_selected_level', selectedLevel);
+    } catch (e) {
+      console.warn("localStorage setItem selectedLevel failed:", e);
+    }
   }, [selectedLevel]);
 
   const showNotification = (title: string, message: string, type: 'badge' | 'unlock') => {
@@ -123,10 +162,14 @@ export default function App() {
     showNotification('¡Perfil Creado! 🎯', `Bienvenido ${userName}. Tu nivel es ${level}.`, 'unlock');
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('user_stats');
-    localStorage.removeItem('user_current_view');
-    localStorage.removeItem('user_selected_level');
+   const handleLogout = () => {
+    try {
+      localStorage.removeItem('user_stats');
+      localStorage.removeItem('user_current_view');
+      localStorage.removeItem('user_selected_level');
+    } catch (e) {
+      console.warn("localStorage removeItem failed:", e);
+    }
     setStats({
       xp: 0,
       energy: 5,
