@@ -23,8 +23,14 @@ interface UserStats {
 }
 
 export default function App() {
-  const [view, setView] = useState<'dashboard' | 'lesson' | 'review' | 'vocabulary' | 'stats' | 'profile' | 'simulator' | 'placement'>('dashboard');
-  const [selectedLevel, setSelectedLevel] = useState<string>('A2');
+  const [view, setView] = useState<'dashboard' | 'lesson' | 'review' | 'vocabulary' | 'stats' | 'profile' | 'simulator' | 'placement'>(() => {
+    const savedView = localStorage.getItem('user_current_view');
+    return (savedView as any) || 'dashboard';
+  });
+  const [selectedLevel, setSelectedLevel] = useState<string>(() => {
+    const savedLevel = localStorage.getItem('user_selected_level');
+    return savedLevel || 'A2';
+  });
   
   const [stats, setStats] = useState<UserStats>(() => {
     const saved = localStorage.getItem('user_stats');
@@ -56,6 +62,14 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('user_stats', JSON.stringify(stats));
   }, [stats]);
+
+  useEffect(() => {
+    localStorage.setItem('user_current_view', view);
+  }, [view]);
+
+  useEffect(() => {
+    localStorage.setItem('user_selected_level', selectedLevel);
+  }, [selectedLevel]);
 
   const showNotification = (title: string, message: string, type: 'badge' | 'unlock') => {
     setNotification({ title, message, type });
@@ -111,6 +125,8 @@ export default function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('user_stats');
+    localStorage.removeItem('user_current_view');
+    localStorage.removeItem('user_selected_level');
     setStats({
       xp: 0,
       energy: 5,
