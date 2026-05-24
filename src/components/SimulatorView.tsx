@@ -53,10 +53,23 @@ export function SimulatorView({ level, onExit }: { level: string, onExit: () => 
           level 
         })
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      
+      if (!res.ok) {
+        throw new Error(data.details || data.error || `Error del servidor (${res.status})`);
+      }
+      
+      if (!data.text) {
+        throw new Error('La respuesta de la simulación está vacía.');
+      }
+
       setMessages([{ role: 'assistant', text: data.text }]);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      setMessages([{ 
+        role: 'assistant', 
+        text: `⚠️ No se pudo iniciar la simulación. El tutor no está respondiendo (${e.message || 'Error de conexión'}). Asegúrate de haber agregado la GEMINI_API_KEY en Secrets.` 
+      }]);
     } finally {
         setLoading(false);
     }
@@ -81,10 +94,23 @@ export function SimulatorView({ level, onExit }: { level: string, onExit: () => 
           level 
         })
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.details || data.error || `Error del servidor (${res.status})`);
+      }
+
+      if (!data.text) {
+        throw new Error('La respuesta de la simulación está vacía.');
+      }
+
       setMessages([...newMessages, { role: 'assistant', text: data.text }]);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      setMessages([...newMessages, { 
+        role: 'assistant', 
+        text: `⚠️ Lo siento, falló la conexión con el simulador. (${e.message || 'Error de conexión'}).` 
+      }]);
     } finally {
       setLoading(false);
     }

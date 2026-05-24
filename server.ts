@@ -69,6 +69,9 @@ async function startServer() {
   app.post('/api/ask', async (req, res) => {
     try {
       const { question, context } = req.body;
+      if (!process.env.GEMINI_API_KEY) {
+        throw new Error('La clave GEMINI_API_KEY no está configurada en las variables de entorno o Secretos de AI Studio.');
+      }
       const response = await ai.models.generateContent({
         model: 'gemini-3.5-flash',
         contents: question,
@@ -77,9 +80,12 @@ async function startServer() {
         }
       });
       res.json({ answer: response.text });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Failed to get answer' });
+    } catch (error: any) {
+      console.error("Error en /api/ask:", error);
+      res.status(500).json({ 
+        error: 'Failed to get answer', 
+        details: error.message || String(error) 
+      });
     }
   });
 
@@ -139,6 +145,9 @@ async function startServer() {
   app.post('/api/simulator-chat', async (req, res) => {
     try {
       const { scenario, messages, level } = req.body;
+      if (!process.env.GEMINI_API_KEY) {
+        throw new Error('La clave GEMINI_API_KEY no está configurada en las variables de entorno o Secretos de AI Studio.');
+      }
       
       const systemInstructions = {
         'travel': `You are a helpful airline check-in agent. The student is checking in for a flight to London. Act naturally, ask for passport, baggage, and seating preferences. Keep your English appropriate for level ${level}.`,
@@ -160,9 +169,12 @@ async function startServer() {
       });
 
       res.json({ text: response.text });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Falla en el simulador' });
+    } catch (error: any) {
+      console.error("Error en /api/simulator-chat:", error);
+      res.status(500).json({ 
+        error: 'Falla en el simulador', 
+        details: error.message || String(error) 
+      });
     }
   });
 

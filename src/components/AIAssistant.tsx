@@ -32,10 +32,23 @@ export function AIAssistant() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ question: userMsg, context: 'Dashboard conversation' })
             });
-            const data = await res.json();
+            const data = await res.json().catch(() => ({}));
+            
+            if (!res.ok) {
+                throw new Error(data.details || data.error || `Error de servidor (${res.status})`);
+            }
+            
+            if (!data.answer) {
+                throw new Error('La respuesta de la IA está vacía.');
+            }
+
             setMessages(prev => [...prev, { role: 'assistant', content: data.answer }]);
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
+            setMessages(prev => [...prev, { 
+                role: 'assistant', 
+                content: `⚠️ Lo siento, no pude obtener respuesta del tutor. (${e.message || 'Error de conexión'}). Por favor, asegúrate de haber configurado correctamente tu GEMINI_API_KEY en la sección Configuración (Secrets) y de que tu servidor esté respondiendo.` 
+            }]);
         } finally {
             setLoading(false);
         }
