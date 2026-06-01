@@ -4,6 +4,12 @@ import cors from 'cors';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
+import {
+  assertGeminiApiKey,
+  generateContentWithFallback,
+  getGeminiModels,
+  sendGeminiError,
+} from './server/gemini.ts';
 
 async function startServer() {
   const app = express();
@@ -11,6 +17,12 @@ async function startServer() {
 
   app.use(cors());
   app.use(express.json());
+
+  try {
+    assertGeminiApiKey();
+  } catch (e) {
+    console.error('⚠️', e instanceof Error ? e.message : e);
+  }
 
   const ai = new GoogleGenAI({
     apiKey: process.env.GEMINI_API_KEY!,
@@ -21,12 +33,13 @@ async function startServer() {
     }
   });
 
+  console.log(`Gemini models (fallback order): ${getGeminiModels().join(' → ')}`);
+
   // API: Generate Exercises
   app.post('/api/generate-exercise', async (req, res) => {
     try {
       const { level, topic } = req.body;
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+      const response = await generateContentWithFallback(ai, {
         contents: `Generate 5 varied English learning exercises for level ${level} about ${topic}. 
         Mix these types: 
         1. 'multiple-choice': Standard question with options.
@@ -61,7 +74,7 @@ async function startServer() {
       res.json(JSON.parse(response.text!));
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: 'Failed to generate exercises' });
+      sendGeminiError(res, error, 'Failed to generate exercises');
     }
   });
 
@@ -69,23 +82,16 @@ async function startServer() {
   app.post('/api/ask', async (req, res) => {
     try {
       const { question, context } = req.body;
-      if (!process.env.GEMINI_API_KEY) {
-        throw new Error('La clave GEMINI_API_KEY no está configurada en las variables de entorno o Secretos de AI Studio.');
-      }
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+      const response = await generateContentWithFallback(ai, {
         contents: question,
         config: {
           systemInstruction: `You are Linguae AI, a friendly English tutor. Help the user learn English. Context: ${context || 'General conversation'}. Keep it concise and encouraging.`,
         }
       });
       res.json({ answer: response.text });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error en /api/ask:", error);
-      res.status(500).json({ 
-        error: 'Failed to get answer', 
-        details: error.message || String(error) 
-      });
+      sendGeminiError(res, error, 'Failed to get answer');
     }
   });
 
@@ -115,8 +121,7 @@ async function startServer() {
         
            Respond in Spanish, but keep English terms in English. Format as JSON.`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+      const response = await generateContentWithFallback(ai, {
         contents: prompt,
         config: {
           systemInstruction: "You are an expert English tutor. You provide constructive, elegant and motivating feedback. Respond ONLY in JSON.",
@@ -137,7 +142,7 @@ async function startServer() {
       res.json(JSON.parse(response.text!));
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: 'Failed to analyze answer' });
+      sendGeminiError(res, error, 'Failed to analyze answer');
     }
   });
 
@@ -145,10 +150,6 @@ async function startServer() {
   app.post('/api/simulator-chat', async (req, res) => {
     try {
       const { scenario, messages, level } = req.body;
-      if (!process.env.GEMINI_API_KEY) {
-        throw new Error('La clave GEMINI_API_KEY no está configurada en las variables de entorno o Secretos de AI Studio.');
-      }
-      
       const systemInstructions = {
         'travel': `You are a helpful airline check-in agent. The student is checking in for a flight to London. Act naturally, ask for passport, baggage, and seating preferences. Keep your English appropriate for level ${level}.`,
         'interview': `You are a professional HR manager at a modern tech company. The student is interviewing for a Junior Developer position. Ask challenging but fair questions about their background and projects. Level: ${level}.`,
@@ -157,8 +158,7 @@ async function startServer() {
         'daily': `You are a friendly neighbor meeting the student at the park. Talk about the weather, weekend plans, or local events. Level: ${level}.`
       };
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+      const response = await generateContentWithFallback(ai, {
         contents: messages.map((m: any) => ({
           role: m.role === 'user' ? 'user' : 'model',
           parts: [{ text: m.text }]
@@ -169,12 +169,9 @@ async function startServer() {
       });
 
       res.json({ text: response.text });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error en /api/simulator-chat:", error);
-      res.status(500).json({ 
-        error: 'Falla en el simulador', 
-        details: error.message || String(error) 
-      });
+      sendGeminiError(res, error, 'Falla en el simulador');
     }
   });
 
@@ -182,8 +179,7 @@ async function startServer() {
   app.post('/api/generate-lesson', async (req, res) => {
     try {
       const { level, topic } = req.body;
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+      const response = await generateContentWithFallback(ai, {
         contents: `Actúa como diseñador curricular de inglés. Crea una microlección nivel ${level} sobre "${topic}".
         
         Debe incluir:
@@ -222,7 +218,8 @@ async function startServer() {
                     question: { type: Type.STRING },
                     options: { type: Type.ARRAY, items: { type: Type.STRING } },
                     correctAnswer: { type: Type.STRING },
-                    explanation: { type: Type.STRING }
+                    explanation: { type: Type.STRING },
+                    scrambledWords: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Required for order-phrase: shuffled words" }
                   },
                   required: ["type", "question", "correctAnswer"]
                 }
@@ -235,15 +232,14 @@ async function startServer() {
       res.json(JSON.parse(response.text!));
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: 'Failed to generate lesson' });
+      sendGeminiError(res, error, 'Failed to generate lesson');
     }
   });
 
   // API: Generate Placement Test
   app.post('/api/generate-placement-test', async (req, res) => {
     try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+      const response = await generateContentWithFallback(ai, {
         contents: `Actúa como un examinador experto de inglés. Crea un mini test de nivelación de 10 preguntas.
         
         Reglas absolutas:
@@ -281,7 +277,7 @@ async function startServer() {
       res.json(JSON.parse(response.text!));
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: 'Failed to generate placement test' });
+      sendGeminiError(res, error, 'Failed to generate placement test');
     }
   });
 

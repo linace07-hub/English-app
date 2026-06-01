@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   CheckCircle2, 
@@ -15,6 +15,19 @@ import {
   Trophy
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { getFallbackLesson } from '../data/fallbackLessons';
+import {
+  getOrderPhraseBank,
+  joinOrderedWords,
+  phrasesMatch,
+  type WordToken,
+} from '../lib/orderPhrase';
+import {
+  getExerciseHint,
+  getExerciseTitle,
+  getExerciseTypeLabel,
+  normalizeLessonData,
+} from '../lib/exerciseDisplay';
 
 export function LessonView({ level, onExit, onComplete, onMistake }: { level: string, onExit: () => void, onComplete: (xp: number) => void, onMistake: () => void }) {
     const [lessonData, setLessonData] = useState<any>(null);
@@ -22,9 +35,11 @@ export function LessonView({ level, onExit, onComplete, onMistake }: { level: st
     const [currentIndex, setCurrentIndex] = useState(0);
     const [selectedOption, setSelectedOption] = useState<string | null>(null);
     const [fillValue, setFillValue] = useState('');
-    const [orderedWords, setOrderedWords] = useState<string[]>([]);
+    const [orderedSlots, setOrderedSlots] = useState<WordToken[]>([]);
     const [isAnswered, setIsAnswered] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
+    const [usingOfflineLesson, setUsingOfflineLesson] = useState(false);
     const [stats, setStats] = useState({ correct: 0, total: 0 });
     const [feedback, setFeedback] = useState<{ successMessage?: string, elegantFeedback?: string, whyIncorrect: string, grammarErrors?: string, recommendation: string } | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -35,6 +50,7 @@ export function LessonView({ level, onExit, onComplete, onMistake }: { level: st
 
     const fetchLesson = async () => {
         setLoading(true);
+        setLoadError(null);
         try {
             const res = await fetch('/api/generate-lesson', {
                 method: 'POST',
@@ -44,16 +60,38 @@ export function LessonView({ level, onExit, onComplete, onMistake }: { level: st
                     topic: level === 'A1' ? 'Greetings & Introductions' : level === 'A2' ? 'Daily Routine' : 'Professional Emails' 
                 })
             });
-            const data = await res.json();
-            setLessonData(data);
+            const data = await res.json().catch(() => null);
+            if (!res.ok || !data?.exercises?.length) {
+                throw new Error(data?.details || data?.error || `No se pudo cargar la lección (${res.status})`);
+            }
+            setLessonData(normalizeLessonData(data));
         } catch (e) {
-            console.error(e);
+            console.error('AI lesson failed, using offline lesson:', e);
+            setLessonData(normalizeLessonData(getFallbackLesson(level)));
+            setUsingOfflineLesson(true);
+            setLoadError(null);
         } finally {
             setLoading(false);
         }
     };
 
     const fetchFeedback = async (userAnswer: string, isCorrect: boolean) => {
+        if (usingOfflineLesson) {
+            setFeedback(
+                isCorrect
+                    ? {
+                          successMessage: '¡Excelente! ✨ Respuesta correcta.',
+                          whyIncorrect: '',
+                          recommendation: 'Sigue con el siguiente ejercicio.',
+                      }
+                    : {
+                          elegantFeedback: `La respuesta correcta es: ${currentExercise.correctAnswer}`,
+                          whyIncorrect: currentExercise.explanation || 'Revisa la regla de la lección.',
+                          recommendation: 'Lee la explicación arriba e inténtalo de nuevo en la próxima pregunta.',
+                      },
+            );
+            return;
+        }
         setIsAnalyzing(true);
         try {
             const res = await fetch('/api/analyze-mistake', {
@@ -79,6 +117,24 @@ export function LessonView({ level, onExit, onComplete, onMistake }: { level: st
 
     const currentExercise = lessonData?.exercises?.[currentIndex];
 
+    const orderPhraseBank = useMemo(() => {
+        if (currentExercise?.type !== 'order-phrase') return [];
+        return getOrderPhraseBank(currentExercise);
+    }, [currentExercise]);
+
+    const usedOrderIds = useMemo(
+        () => new Set(orderedSlots.map((s) => s.id)),
+        [orderedSlots],
+    );
+
+    useEffect(() => {
+        setOrderedSlots([]);
+        setSelectedOption(null);
+        setFillValue('');
+        setIsAnswered(false);
+        setFeedback(null);
+    }, [currentIndex]);
+
     const handleSpeech = () => {
         if (!currentExercise.audioText) return;
         const utterance = new SpeechSynthesisUtterance(currentExercise.audioText);
@@ -101,9 +157,9 @@ export function LessonView({ level, onExit, onComplete, onMistake }: { level: st
             userAnswer = fillValue.trim();
             isCorrect = userAnswer.toLowerCase() === currentExercise.correctAnswer.toLowerCase();
         } else if (type === 'order-phrase') {
-            if (orderedWords.length === 0) return;
-            userAnswer = orderedWords.join(' ');
-            isCorrect = userAnswer === currentExercise.correctAnswer;
+            if (orderedSlots.length === 0) return;
+            userAnswer = joinOrderedWords(orderedSlots);
+            isCorrect = phrasesMatch(userAnswer, currentExercise.correctAnswer);
         }
 
         setIsAnswered(true);
@@ -120,7 +176,7 @@ export function LessonView({ level, onExit, onComplete, onMistake }: { level: st
             setCurrentIndex(prev => prev + 1);
             setSelectedOption(null);
             setFillValue('');
-            setOrderedWords([]);
+            setOrderedSlots([]);
             setIsAnswered(false);
             setFeedback(null);
         } else {
@@ -142,6 +198,33 @@ export function LessonView({ level, onExit, onComplete, onMistake }: { level: st
         );
     }
 
+    if (!lessonData) {
+        return (
+            <div className="flex-1 flex flex-col items-center justify-center bg-white p-12 text-center">
+                <p className="text-rose-600 font-bold mb-4">{loadError || 'No se pudo cargar la lección.'}</p>
+                <p className="text-slate-500 text-sm mb-8 max-w-md">
+                    Si el error es por saturación de la IA, espera unos segundos y pulsa Reintentar. Si persiste, revisa GEMINI_API_KEY en .env y que ejecutes <code className="text-indigo-600">npm run dev</code>.
+                </p>
+                <div className="flex gap-4">
+                    <button
+                        type="button"
+                        onClick={fetchLesson}
+                        className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-black"
+                    >
+                        Reintentar
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onExit}
+                        className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-black"
+                    >
+                        Volver
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     if (phase === 'intro') {
         return (
             <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50">
@@ -154,6 +237,11 @@ export function LessonView({ level, onExit, onComplete, onMistake }: { level: st
                         <Sparkles className="w-10 h-10" />
                     </div>
                     <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-4">Nivel {level} • Nueva Lección</h3>
+                    {usingOfflineLesson && (
+                        <p className="text-sm font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-4 py-2 mb-4">
+                            Modo sin IA (cuota de Google agotada). Puedes practicar igual con esta lección.
+                        </p>
+                    )}
                     <h2 className="text-4xl font-black text-slate-900 mb-6 leading-tight">{lessonData.objective}</h2>
                     <button 
                         onClick={() => setPhase('vocabulary')}
@@ -289,34 +377,50 @@ export function LessonView({ level, onExit, onComplete, onMistake }: { level: st
             </div>
 
             {/* Content */}
-            <main className="flex-1 flex flex-col items-center justify-center p-8 overflow-y-auto bg-gradient-to-b from-white to-slate-50/50">
-                <div className="max-w-2xl w-full space-y-12 mb-20 animate-fade-in">
-                    <div className="space-y-6">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-lg font-black shadow-lg shadow-indigo-200">
-                                {currentIndex + 1}
-                            </div>
-                            <div>
-                                <h3 className="uppercase text-[10px] font-black tracking-[0.2em] text-slate-400">Nivel {level}</h3>
-                                <p className="text-sm font-bold text-indigo-600">
-                                    {level === 'A1' ? 'Conceptos Básicos' : level === 'A2' ? 'Rutina Diaria' : 'Viajes y Cultura'}
-                                </p>
-                            </div>
+            <main className="flex-1 min-h-0 flex flex-col bg-gradient-to-b from-white to-slate-50/50">
+                {/* Pregunta siempre visible arriba */}
+                <div className="shrink-0 z-20 px-4 sm:px-8 pt-4 pb-3 bg-white border-b border-slate-100 shadow-sm">
+                    <div className="max-w-2xl mx-auto space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
+                                {getExerciseTypeLabel(currentExercise.type)}
+                            </span>
+                            <span className="text-[10px] font-black text-slate-400">
+                                Pregunta {currentIndex + 1} · Nivel {level}
+                            </span>
                         </div>
-                        <h2 className="text-4xl font-black text-slate-900 leading-tight tracking-tight">
-                            {currentExercise.type === 'listening' ? "Escucha y responde:" : currentExercise.question}
+                        <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 leading-snug">
+                            {getExerciseTitle(currentExercise)}
                         </h2>
+                        {getExerciseHint(currentExercise.type) && (
+                            <p className="text-sm text-slate-600 font-medium leading-relaxed bg-slate-50 border border-slate-100 rounded-xl px-4 py-3">
+                                {getExerciseHint(currentExercise.type)}
+                            </p>
+                        )}
                     </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 pb-36">
+                <div className="max-w-2xl mx-auto w-full space-y-8 animate-fade-in">
 
                     {currentExercise.type === 'listening' && (
-                        <div className="flex flex-col items-center gap-6 py-8">
+                        <div className="flex flex-col items-center gap-6 py-4">
                             <button 
+                                type="button"
                                 onClick={handleSpeech}
                                 className="w-32 h-32 bg-indigo-600 rounded-[2.5rem] flex items-center justify-center shadow-2xl shadow-indigo-200 hover:scale-110 active:scale-95 transition-all text-white group"
                             >
                                 <Volume2 className="w-12 h-12 group-hover:animate-pulse" />
                             </button>
                             <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Haz clic para escuchar</p>
+                        </div>
+                    )}
+
+                    {currentExercise.type === 'fill-blank' && (
+                        <div className="bg-white border-2 border-slate-100 rounded-2xl p-6 text-center">
+                            <p className="text-lg sm:text-xl font-bold text-slate-800 leading-relaxed">
+                                {currentExercise.question}
+                            </p>
                         </div>
                     )}
 
@@ -382,42 +486,55 @@ export function LessonView({ level, onExit, onComplete, onMistake }: { level: st
                     )}
 
                     {currentExercise.type === 'order-phrase' && (
-                        <div className="space-y-12">
-                            {/* Area to drop words */}
-                            <div className="min-h-[100px] p-6 border-2 border-dashed border-slate-200 rounded-[2rem] flex flex-wrap gap-2 bg-slate-50/50">
-                                {orderedWords.map((word, idx) => (
-                                    <button 
-                                        key={idx}
-                                        disabled={isAnswered}
-                                        onClick={() => setOrderedWords(prev => prev.filter((_, i) => i !== idx))}
-                                        className="px-6 py-3 bg-white border-2 border-slate-100 rounded-xl font-bold shadow-sm hover:border-indigo-600 transition-all animate-fade-in"
-                                    >
-                                        {word}
-                                    </button>
-                                ))}
+                        <div className="space-y-6">
+                            <div className="min-h-[100px] p-6 border-2 border-dashed border-indigo-200 rounded-[2rem] flex flex-wrap gap-2 bg-indigo-50/40 items-center">
+                                {orderedSlots.length === 0 ? (
+                                    <span className="text-slate-400 text-sm font-medium w-full text-center">
+                                        Tu frase aparecerá aquí…
+                                    </span>
+                                ) : (
+                                    orderedSlots.map((slot, idx) => (
+                                        <button
+                                            key={`${slot.id}-${idx}`}
+                                            type="button"
+                                            disabled={isAnswered}
+                                            onClick={() =>
+                                                setOrderedSlots((prev) => prev.filter((_, i) => i !== idx))
+                                            }
+                                            className="px-6 py-3 bg-white border-2 border-indigo-200 rounded-xl font-bold shadow-sm hover:border-indigo-600 transition-all"
+                                        >
+                                            {slot.word}
+                                        </button>
+                                    ))
+                                )}
                             </div>
 
-                            {/* Options */}
                             <div className="flex flex-wrap justify-center gap-3">
-                                {currentExercise.scrambledWords?.map((word: string, idx: number) => {
-                                    const isUsed = orderedWords.includes(word);
+                                {orderPhraseBank.map((token) => {
+                                    const isUsed = usedOrderIds.has(token.id);
                                     return (
                                         <button
-                                            key={idx}
+                                            key={token.id}
+                                            type="button"
                                             disabled={isAnswered || isUsed}
-                                            onClick={() => setOrderedWords(prev => [...prev, word])}
+                                            onClick={() =>
+                                                setOrderedSlots((prev) => [...prev, token])
+                                            }
                                             className={cn(
-                                                "px-8 py-4 bg-white border-2 rounded-2xl font-black transition-all shadow-md",
-                                                isUsed ? "opacity-20 translate-y-1" : "hover:border-indigo-600 hover:-translate-y-1 active:translate-y-0"
+                                                'px-8 py-4 bg-white border-2 rounded-2xl font-black transition-all shadow-md',
+                                                isUsed
+                                                    ? 'opacity-30 cursor-not-allowed'
+                                                    : 'hover:border-indigo-600 hover:-translate-y-1 active:translate-y-0 border-slate-100',
                                             )}
                                         >
-                                            {word}
+                                            {token.word}
                                         </button>
                                     );
                                 })}
                             </div>
                         </div>
                     )}
+                </div>
                 </div>
             </main>
 
@@ -444,7 +561,7 @@ export function LessonView({ level, onExit, onComplete, onMistake }: { level: st
                                         (currentExercise.type === 'vocabulary' && selectedOption === currentExercise.correctAnswer) ||
                                         (currentExercise.type === 'listening' && selectedOption === currentExercise.correctAnswer) ||
                                         (currentExercise.type === 'fill-blank' && fillValue.toLowerCase() === currentExercise.correctAnswer.toLowerCase()) ||
-                                        (currentExercise.type === 'order-phrase' && orderedWords.join(' ') === currentExercise.correctAnswer)
+                                        (currentExercise.type === 'order-phrase' && phrasesMatch(joinOrderedWords(orderedSlots), currentExercise.correctAnswer))
                                     )) ? "bg-green-500 text-white" : "bg-rose-500 text-white"
                                 )}>
                                     <Sparkles className="w-8 h-8" />
@@ -457,7 +574,7 @@ export function LessonView({ level, onExit, onComplete, onMistake }: { level: st
                                             (currentExercise.type === 'vocabulary' && selectedOption === currentExercise.correctAnswer) ||
                                             (currentExercise.type === 'listening' && selectedOption === currentExercise.correctAnswer) ||
                                             (currentExercise.type === 'fill-blank' && fillValue.toLowerCase() === currentExercise.correctAnswer.toLowerCase()) ||
-                                            (currentExercise.type === 'order-phrase' && orderedWords.join(' ') === currentExercise.correctAnswer)
+                                            (currentExercise.type === 'order-phrase' && phrasesMatch(joinOrderedWords(orderedSlots), currentExercise.correctAnswer))
                                         )) ? "text-green-900" : "text-rose-900"
                                     )}>
                                         {(isAnswered && (
@@ -465,7 +582,7 @@ export function LessonView({ level, onExit, onComplete, onMistake }: { level: st
                                             (currentExercise.type === 'vocabulary' && selectedOption === currentExercise.correctAnswer) ||
                                             (currentExercise.type === 'listening' && selectedOption === currentExercise.correctAnswer) ||
                                             (currentExercise.type === 'fill-blank' && fillValue.toLowerCase() === currentExercise.correctAnswer.toLowerCase()) ||
-                                            (currentExercise.type === 'order-phrase' && orderedWords.join(' ') === currentExercise.correctAnswer)
+                                            (currentExercise.type === 'order-phrase' && phrasesMatch(joinOrderedWords(orderedSlots), currentExercise.correctAnswer))
                                         )) ? "¡Excelente trabajo!" : "Casi lo logras, observa:"}
                                     </h4>
                                     
@@ -526,7 +643,7 @@ export function LessonView({ level, onExit, onComplete, onMistake }: { level: st
                                             (currentExercise.type === 'vocabulary' && selectedOption === currentExercise.correctAnswer) ||
                                             (currentExercise.type === 'listening' && selectedOption === currentExercise.correctAnswer) ||
                                             (currentExercise.type === 'fill-blank' && fillValue.toLowerCase() === currentExercise.correctAnswer.toLowerCase()) ||
-                                            (currentExercise.type === 'order-phrase' && orderedWords.join(' ') === currentExercise.correctAnswer)
+                                            (currentExercise.type === 'order-phrase' && phrasesMatch(joinOrderedWords(orderedSlots), currentExercise.correctAnswer))
                                         )) 
                                             ? "bg-green-500 text-white shadow-green-100 hover:bg-green-600" 
                                             : "bg-rose-500 text-white shadow-rose-100 hover:bg-rose-600"
@@ -543,8 +660,8 @@ export function LessonView({ level, onExit, onComplete, onMistake }: { level: st
 
             {/* Bottom Bar (initial state) */}
             {!isAnswered && (
-                <div className="p-10 border-t border-slate-100 bg-white">
-                    <div className="max-w-4xl mx-auto flex items-center justify-between">
+                <div className="fixed bottom-0 left-0 right-0 z-30 p-4 sm:p-6 border-t border-slate-100 bg-white/95 backdrop-blur-md shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
+                    <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
                         <button 
                             onClick={handleNext}
                             className="text-slate-400 font-black uppercase text-[10px] tracking-[0.2em] hover:text-slate-600 px-4 py-2"
@@ -552,11 +669,11 @@ export function LessonView({ level, onExit, onComplete, onMistake }: { level: st
                             Saltar
                         </button>
                         <button
-                            disabled={!selectedOption && !fillValue.trim() && orderedWords.length === 0}
+                            disabled={!selectedOption && !fillValue.trim() && orderedSlots.length === 0}
                             onClick={handleCheck}
                             className={cn(
                                 "py-5 px-16 rounded-[2rem] font-black text-sm uppercase tracking-[0.15em] transition-all",
-                                (selectedOption || fillValue.trim() || orderedWords.length > 0) 
+                                (selectedOption || fillValue.trim() || orderedSlots.length > 0) 
                                     ? "bg-indigo-600 text-white shadow-indigo-200 shadow-2xl hover:bg-indigo-700 transform hover:scale-105 active:scale-95" 
                                     : "bg-slate-100 text-slate-300 cursor-not-allowed"
                             )}

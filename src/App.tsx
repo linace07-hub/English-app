@@ -13,6 +13,7 @@ import { StatsView } from './components/StatsView';
 import { motion, AnimatePresence } from 'motion/react';
 import { Award, Zap, Heart, Star } from 'lucide-react';
 import { cn } from './lib/utils';
+import { normalizeView, type AppView } from './lib/navigation';
 
 interface UserStats {
   xp: number;
@@ -26,10 +27,9 @@ interface UserStats {
 }
 
 export default function App() {
-  const [view, setView] = useState<'dashboard' | 'lesson' | 'review' | 'vocabulary' | 'stats' | 'profile' | 'simulator' | 'placement'>(() => {
+  const [view, setView] = useState<AppView>(() => {
     try {
-      const savedView = localStorage.getItem('user_current_view');
-      return (savedView as any) || 'dashboard';
+      return normalizeView(localStorage.getItem('user_current_view'));
     } catch (e) {
       console.warn("localStorage is not available:", e);
       return 'dashboard';
@@ -201,7 +201,7 @@ export default function App() {
     <div className="flex h-screen bg-[#F9FAFB] overflow-hidden relative">
       {/* Desktop Sidebar (Permanent) */}
       <div className="hidden lg:flex lg:w-64 shrink-0 h-full">
-        <Sidebar onNavigate={(v) => setView(v as any)} currentView={view} energy={stats.energy} />
+        <Sidebar onNavigate={(v) => setView(normalizeView(v))} currentView={view} energy={stats.energy} />
       </div>
 
       {/* Mobile/Tablet Sidebar Drawer with Smooth Backdrop Overlay */}
@@ -226,7 +226,7 @@ export default function App() {
             >
               <Sidebar 
                 onNavigate={(v) => {
-                  setView(v as any);
+                  setView(normalizeView(v));
                   setSidebarOpen(false);
                 }} 
                 currentView={view} 
@@ -316,7 +316,18 @@ export default function App() {
             <VocabularyView level={stats.level} onExit={() => setView('dashboard')} />
           ) : view === 'stats' ? (
             <StatsView stats={stats} onExit={() => setView('dashboard')} />
-          ) : null}
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+              <p className="text-slate-500 font-medium mb-6">Vista no reconocida.</p>
+              <button
+                type="button"
+                onClick={() => setView('dashboard')}
+                className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black"
+              >
+                Ir al inicio
+              </button>
+            </div>
+          )}
         </main>
 
         {view !== 'review' && <AIAssistant />}
