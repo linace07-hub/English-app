@@ -7,6 +7,9 @@ import { SimulatorView } from './components/SimulatorView';
 import { PlacementTest } from './components/PlacementTest';
 import { ProfileView } from './components/ProfileView';
 import { AIAssistant } from './components/AIAssistant';
+import { ChatTutorView } from './components/ChatTutorView';
+import { VocabularyView } from './components/VocabularyView';
+import { StatsView } from './components/StatsView';
 import { motion, AnimatePresence } from 'motion/react';
 import { Award, Zap, Heart, Star } from 'lucide-react';
 import { cn } from './lib/utils';
@@ -303,36 +306,20 @@ export default function App() {
               onUpdateStats={(updated) => setStats(updated)} 
               onLogout={handleLogout}
             />
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-12 text-center h-full bg-slate-50/30">
-              <div className="w-32 h-32 bg-white rounded-[2.5rem] shadow-xl shadow-indigo-100 flex items-center justify-center mb-8 border border-slate-100 transform -rotate-3 transition-transform hover:rotate-0">
-                <span className="text-5xl">
-                    {view === 'vocabulary' ? '📚' : view === 'stats' ? '📊' : '✨'}
-                </span>
-              </div>
-              <h2 className="text-4xl font-black text-slate-900 mb-4 tracking-tight uppercase">
-                {view === 'vocabulary' ? 'Vocabulario AI' : 
-                 view === 'stats' ? 'Tus Logros' : 
-                 view === 'review' ? 'Sesión de Repaso' : view}
-              </h2>
-              <p className="text-slate-500 max-w-lg font-medium text-lg leading-relaxed">
-                {view === 'vocabulary' ? 'Estamos generando una lista personalizada de palabras basada en tus errores recientes.' : 
-                 view === 'stats' ? 'Calculando tus horas de estudio y precisión con modelos de inteligencia artificial de última generación.' : 
-                 'Esta sección está siendo optimizada para ofrecerte el mejor contenido personalizado. ¡Vuelve pronto!'}
-              </p>
-              <div className="mt-10 flex gap-4">
-                <button 
-                  onClick={() => setView('dashboard')}
-                  className="px-10 py-5 bg-indigo-600 text-white rounded-[1.5rem] font-black shadow-2xl shadow-indigo-200 hover:scale-105 active:scale-95 transition-all text-lg"
-                >
-                  Regresar al Inicio
-                </button>
-              </div>
-            </div>
-          )}
+          ) : view === 'review' ? (
+            <ChatTutorView
+              level={stats.level}
+              userName={stats.userName}
+              onExit={() => setView('dashboard')}
+            />
+          ) : view === 'vocabulary' ? (
+            <VocabularyView level={stats.level} onExit={() => setView('dashboard')} />
+          ) : view === 'stats' ? (
+            <StatsView stats={stats} onExit={() => setView('dashboard')} />
+          ) : null}
         </main>
 
-        <AIAssistant />
+        {view !== 'review' && <AIAssistant />}
       </div>
     </div>
   );
