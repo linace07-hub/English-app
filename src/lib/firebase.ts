@@ -1,15 +1,14 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import firebaseConfig from '../../firebase-applet-config.json';
 
 let app;
 let auth: any;
 let db: any;
 
 try {
-  // We use require for optional config if it doesn't exist yet
-  const firebaseConfig = await import('../../firebase-applet-config.json', { assert: { type: 'json' } });
-  app = initializeApp(firebaseConfig.default);
+  app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
 
